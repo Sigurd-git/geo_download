@@ -13,7 +13,7 @@ Before using this script, ensure you have the following prerequisites installed 
 Clone this repository to your local machine:
 
 ```
-git clone https://github.com/your-username/your-repository.git
+git clone https://github.com/Sigurd-git/geo_download.git
 ```
 Navigate to the repository directory:
 ```
