@@ -156,7 +156,7 @@ function has_subseries() {
 function download_supp_files() {
     local GSE="$1"
 	local subseries
-	local output_dir="/hive/data/outside/geo/$GSE"
+	local output_dir="./$GSE"
 	mkdir -p $output_dir
 	
 	if [ ! -f "$output_dir/${GSE}_family.xml" ]; then cd $output_dir; download_miniml_file "$GSE"; cd ..; fi
@@ -172,6 +172,7 @@ function download_supp_files() {
 			for miniml_file in "$sub_dir"/*xml; do
 				urls=($(awk -F'[<>]' '/<Supplementary-Data type=".*">/ {getline; if ($0 ~ /series/) print}' "$miniml_file"))
 				for url in "${urls[@]}"; do
+					url="${url/ftp:\/\//http://}"
 					wget -P "$sub_dir" "$url"
 				done
 			cd .. 
@@ -182,6 +183,7 @@ function download_supp_files() {
 		urls=($(awk -F'[<>]' '/<Supplementary-Data type=".*">/ {getline; if ($0 ~ /series/) print}' "$miniml_file"))
 		for url in "${urls[@]}"; do
 			#wget -P "$output_dir" "$url"
+			url="${url/ftp:\/\//http://}"
 			wget --no-check-certificate -P "$output_dir" "$url"
 		done
 	done
@@ -189,4 +191,44 @@ function download_supp_files() {
 	echo "Removed gzipped XML files"
 }
 
+
+function show_urls() {
+    local GSE="$1"
+	local subseries
+	local output_dir="./$GSE"
+	mkdir -p $output_dir
+	
+	if [ ! -f "$output_dir/${GSE}_family.xml" ]; then cd $output_dir; download_miniml_file "$GSE"; cd ..; fi
+	if has_subseries ${GSE}_family.xml; then
+		subseries=$(grep "SuperSeries of" ${GSE}_family.xml | grep -oP '(?<=target=")GSE[0-9]+')
+		echo "The SuperSeries $GSE contains SubSeries: $(echo -n $subseries)"
+		for sub_accession in $subseries; do
+			local sub_dir="$output_dir/$sub_accession"
+			mkdir -p "$sub_dir"
+			cd $sub_dir
+			download_miniml_file "$sub_accession"
+			echo $sub_accession $sub_dir
+			for miniml_file in "$sub_dir"/*xml; do
+				urls=($(awk -F'[<>]' '/<Supplementary-Data type=".*">/ {getline; if ($0 ~ /series/) print}' "$miniml_file"))
+				for url in "${urls[@]}"; do
+					url="${url/ftp:\/\//http://}"
+					# wget -P "$sub_dir" "$url"
+                    echo $url
+				done
+			cd .. 
+			done
+		done
+	fi
+	for miniml_file in "$output_dir"/*.xml; do
+		urls=($(awk -F'[<>]' '/<Supplementary-Data type=".*">/ {getline; if ($0 ~ /series/) print}' "$miniml_file"))
+		for url in "${urls[@]}"; do
+			#wget -P "$output_dir" "$url"
+			# wget --no-check-certificate -P "$output_dir" "$url"
+			url="${url/ftp:\/\//http://}"
+            echo $url
+		done
+	done
+	find "$output_dir" -type f -name '*.xml.tgz' -exec rm {} \;
+	echo "Removed gzipped XML files"
+}
 
